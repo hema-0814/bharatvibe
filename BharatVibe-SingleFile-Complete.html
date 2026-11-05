@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BharatVibe - India's Smart Local Tourism & MSME Development Platform</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Leaflet Maps CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background-color: #fbfaf8;
+      color: #0f172a;
+    }
+    .custom-leaflet-popup .leaflet-popup-content-wrapper {
+      padding: 0;
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+    .custom-leaflet-popup .leaflet-popup-content { margin: 0; line-height: inherit; }
+    .custom-leaflet-popup .leaflet-popup-tip { background: white; }
+    .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    @media print {
+      body * { visibility: hidden; }
+      #printable-boarding-pass, #printable-boarding-pass * { visibility: visible; }
+      #printable-boarding-pass { position: fixed; left: 0; top: 0; width: 100%; margin: 0; padding: 20px; border: 2px solid #ea580c !important; background: white !important; }
+      #booking-modal { position: static !important; display: block !important; background: transparent !important; }
+    }
+  </style>
+</head>
+<body class="bg-amber-50/30 text-slate-800 min-h-screen flex flex-col antialiased selection:bg-orange-500 selection:text-white">
+
+  <!-- TOP TRICOLOR NOTIFICATION BANNER -->
+  <div class="bg-gradient-to-r from-orange-700 via-amber-700 to-emerald-800 text-white text-[11px] sm:text-xs py-1.5 px-4 text-center font-medium flex items-center justify-between gap-2 shadow-sm">
+    <div id="top-banner-text" class="truncate text-left flex items-center gap-1.5">
+      <span>🇮🇳 <strong>Dekho Apna Desh:</strong> Zero middleman fees. Every booking directly powers Indian artisans, tribal guilds & village homestays.</span>
+    </div>
+    <div class="flex items-center gap-3 flex-shrink-0">
+      <div class="flex items-center gap-1 bg-black/20 backdrop-blur-md px-2 py-0.5 rounded text-[11px]">
+        <span>📍</span>
+        <select id="region-selector" class="bg-transparent text-white font-semibold focus:outline-none cursor-pointer">
+          <option value="nilgiris" class="text-slate-900">Nilgiris & Ooty Tea Trail (Tamil Nadu)</option>
+          <option value="kerala" class="text-slate-900">Kumarakom & Alleppey Backwaters (Kerala)</option>
+          <option value="rajasthan" class="text-slate-900">Jaipur & Sanganer Artisan Craft (Rajasthan)</option>
+          <option value="karnataka" class="text-slate-900">Coorg & Channapatna Toy Trail (Karnataka)</option>
+        </select>
+      </div>
+
+      <div class="flex items-center gap-1 bg-black/20 backdrop-blur-md px-2 py-0.5 rounded text-[11px]">
+        <span>🌐</span>
+        <select id="language-selector" class="bg-transparent text-white font-semibold focus:outline-none cursor-pointer">
+          <option value="en" class="text-slate-900">English</option>
+          <option value="hi" class="text-slate-900">हिन्दी (Hindi)</option>
+          <option value="ta" class="text-slate-900">தமிழ் (Tamil)</option>
+          <option value="ml" class="text-slate-900">മലയാളം (Malayalam)</option>
+          <option value="kn" class="text-slate-900">ಕನ್ನಡ (Kannada)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- NAVIGATION HEADER -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-orange-100 shadow-sm transition">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center gap-3 cursor-pointer" onclick="window.AppRouter.switchTab('explore')">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center text-white text-xl font-black shadow-md shadow-orange-200">
+            🦚
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="font-extrabold text-lg text-slate-900 tracking-tight">BharatVibe</span>
+              <span class="bg-orange-100 text-orange-800 text-[10px] font-bold px-1.5 py-0.5 rounded">All-In-One</span>
+            </div>
+            <p class="text-[11px] text-slate-500 hidden sm:block -mt-0.5 font-medium">India's Smart Local Tourism & MSME Development Platform</p>
+          </div>
+        </div>
+
+        <div id="live-vibe-pill" class="hidden xl:flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border bg-orange-50 text-orange-900 border-orange-200">
+          <span>☀️ 18°C Misty & Cool • Nilgiri Frost Season</span>
+        </div>
+
+        <nav class="hidden md:flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl text-xs font-semibold">
+          <button data-tab-target="explore" data-i18n="exploreMap" class="px-3 py-2 rounded-lg transition bg-orange-600 text-white shadow-md">
+            🗺️ Explore Map
+          </button>
+          <button data-tab-target="tours" data-i18n="tours" class="px-3 py-2 rounded-lg transition text-slate-600 hover:bg-slate-100">
+            🧭 Tours & Experiences
+          </button>
+          <button data-tab-target="merchants" data-i18n="merchants" class="px-3 py-2 rounded-lg transition text-slate-600 hover:bg-slate-100">
+            🏢 Local Artisans & MSMEs
+          </button>
+          <button data-tab-target="itinerary" data-i18n="trail" class="px-3 py-2 rounded-lg transition text-slate-600 hover:bg-slate-100">
+            📋 Smart Yatra Trail
+          </button>
+          <button data-tab-target="wishlist" class="px-3 py-2 rounded-lg transition text-slate-600 hover:bg-slate-100 relative">
+            ❤️ Saved
+            <span id="wishlist-count-badge" class="ml-1 bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">2</span>
+          </button>
+          <button data-tab-target="my-bookings" data-i18n="bookings" class="px-3 py-2 rounded-lg transition text-slate-600 hover:bg-slate-100 relative">
+            🎫 My Yatra Passes
+            <span id="my-bookings-count-badge" class="ml-1 bg-orange-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">1</span>
+          </button>
+          <button data-tab-target="business-hub" data-i18n="merchantHub" class="px-3 py-2 rounded-lg transition bg-slate-900 text-white hover:bg-slate-800">
+            💼 Artisan / MSME Hub
+          </button>
+        </nav>
+
+        <div class="flex items-center gap-2">
+          <div onclick="window.AppRouter.toggleUserRole()" class="cursor-pointer flex items-center gap-2 p-1.5 pr-2.5 rounded-xl border border-orange-200 bg-white hover:bg-orange-50 transition shadow-sm" title="Click to toggle between Yatri and MSME Host accounts">
+            <img id="user-avatar-img" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80" alt="User" class="w-7 h-7 rounded-lg object-cover">
+            <div class="text-left hidden sm:block">
+              <div id="user-display-name" class="text-xs font-bold text-slate-800 leading-tight">Priya Sundaram</div>
+              <div id="user-role-badge" class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded inline-block">Yatri</div>
+            </div>
+            <span class="text-slate-400 text-xs hidden sm:inline">⇄</span>
+          </div>
+
+          <button onclick="if(confirm('Reset sample data to initial state?')) { DataStore.resetToDefault(); location.reload(); }" class="text-xs text-slate-400 hover:text-slate-600 p-2" title="Reset Demo Data">
+            🔄
+          </button>
+        </div>
+      </div>
+
+      <div class="md:hidden flex items-center justify-between overflow-x-auto py-2 border-t border-slate-100 text-xs font-semibold gap-1 scrollbar-none">
+        <button data-tab-target="explore" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-orange-600 text-white">🗺️ Map</button>
+        <button data-tab-target="tours" class="px-3 py-1.5 rounded-lg whitespace-nowrap text-slate-600">🧭 Tours</button>
+        <button data-tab-target="merchants" class="px-3 py-1.5 rounded-lg whitespace-nowrap text-slate-600">🏢 Artisans</button>
+        <button data-tab-target="itinerary" class="px-3 py-1.5 rounded-lg whitespace-nowrap text-slate-600">📋 Yatra</button>
+        <button data-tab-target="wishlist" class="px-3 py-1.5 rounded-lg whitespace-nowrap text-slate-600">❤️ Saved</button>
+        <button data-tab-target="my-bookings" class="px-3 py-1.5 rounded-lg whitespace-nowrap text-slate-600">🎫 Passes</button>
+        <button data-tab-target="business-hub" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-slate-900 text-white">💼 MSME</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- SEARCH & CATEGORY FILTER STRIP -->
+  <section class="bg-white border-b border-orange-100 py-4 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+      <div class="relative w-full md:w-96">
+        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400 text-sm">
+          🔍
+        </span>
+        <input type="text" id="global-search-input" placeholder="Search tea trails, handloom workshops, spice walks..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition">
+      </div>
+
+      <div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-none">
+        <button data-category="all" data-i18n="allSectors" class="category-filter-pill px-3.5 py-1.5 rounded-full text-xs font-bold transition whitespace-nowrap bg-slate-900 text-white">
+          All Sectors
+        </button>
+        <button data-category="crafts" data-i18n="crafts" class="category-filter-pill px-3.5 py-1.5 rounded-full text-xs font-semibold transition whitespace-nowrap bg-white text-slate-700 border border-slate-200 hover:border-slate-300">
+          🎨 GI Crafts & Handloom
+        </button>
+        <button data-category="adventure" data-i18n="adventure" class="category-filter-pill px-3.5 py-1.5 rounded-full text-xs font-semibold transition whitespace-nowrap bg-white text-slate-700 border border-slate-200 hover:border-slate-300">
+          🛶 Eco-Adventures & Canoes
+        </button>
+        <button data-category="gastronomy" data-i18n="gastronomy" class="category-filter-pill px-3.5 py-1.5 rounded-full text-xs font-semibold transition whitespace-nowrap bg-white text-slate-700 border border-slate-200 hover:border-slate-300">
+          ☕ Tea, Spices & Food
+        </button>
+        <button data-category="heritage" data-i18n="heritage" class="category-filter-pill px-3.5 py-1.5 rounded-full text-xs font-semibold transition whitespace-nowrap bg-white text-slate-700 border border-slate-200 hover:border-slate-300">
+          🏛️ Heritage & Havelis
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN VIEW CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- VIEW 1: EXPLORE & INTERACTIVE MAP -->
+    <div id="view-explore" class="space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white rounded-3xl overflow-hidden border border-orange-100 shadow-md relative">
+          <div class="p-4 bg-white border-b border-orange-50 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+              <h2 class="font-black text-sm text-slate-900">Live Indian Artisan & Destination Map</h2>
+            </div>
+            <div class="flex items-center gap-2 text-[11px] text-slate-500">
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block"></span> Tour</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> Tea/Food</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block"></span> GI Craft</span>
+            </div>
+          </div>
+          <div id="tourism-map" class="h-[460px] sm:h-[540px] w-full z-10"></div>
+          <div class="absolute bottom-4 left-4 z-20 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-orange-200 text-xs shadow-md">
+            Click pins to inspect artisan workshops, book passes, or plot your yatra trail 🗺️
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div class="bg-gradient-to-br from-amber-950 to-orange-950 text-white rounded-3xl p-5 shadow-lg relative overflow-hidden border border-amber-900">
+            <span class="text-[10px] font-bold uppercase tracking-widest text-amber-300">Dekho Apna Desh</span>
+            <h3 class="text-lg font-bold text-white mt-1">Direct Village Tourism</h3>
+            <p class="text-xs text-amber-100/90 mt-2 leading-relaxed">
+              Mainstream booking apps charge 25% commissions. BharatVibe guarantees 100% of your booking fee goes directly to the master weaver, potter, or boatman.
+            </p>
+            <div class="mt-4 pt-3 border-t border-amber-800/80 flex items-center justify-between text-xs">
+              <span>Village Impact Reinvestment:</span>
+              <span class="font-bold text-emerald-300">+₹42,800 this month</span>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-3xl p-5 border border-orange-100 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] font-black uppercase tracking-wider text-orange-700 bg-orange-50 px-2 py-0.5 rounded">
+                Featured Yatra Package
+              </span>
+              <span class="text-xs font-bold text-emerald-700">Save 20%</span>
+            </div>
+            <h4 class="font-bold text-sm text-slate-900">Nilgiris Heritage Tea & Craft Passport</h4>
+            <p class="text-xs text-slate-500 mt-1">Morning tea plucking + colonial cupping + afternoon Toda tribal embroidery.</p>
+            <div class="mt-3 flex items-center justify-between pt-2 border-t border-slate-100">
+              <div class="text-base font-black text-slate-900">₹960 <span class="text-xs line-through text-slate-400 font-normal">₹1,200</span></div>
+              <button onclick="window.AppRouter.openBundleBooking('bundle-1')" class="px-3 py-1.5 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-lg text-xs font-bold transition">
+                Book Bundle
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-3xl p-5 border border-orange-100 shadow-sm">
+            <h4 class="font-bold text-sm text-slate-900 mb-2">Popular Right Now</h4>
+            <div class="flex items-center gap-3">
+              <img src="https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=200&q=80" alt="Tea" class="w-16 h-16 rounded-xl object-cover">
+              <div>
+                <h5 class="font-bold text-xs text-slate-900 line-clamp-1">Highland Tea Plucking & Cupping</h5>
+                <span class="text-xs text-amber-500 font-semibold">★ 4.97 (118 reviews)</span>
+                <div class="text-xs font-bold text-orange-600 mt-0.5">₹650 / person</div>
+              </div>
+            </div>
+            <button onclick="window.BookingEngine.openBookingModal('tour-101')" class="w-full mt-3 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition">
+              Quick Reserve
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 2: TOURS & EXPERIENCES CATALOG -->
+    <div id="view-tours" class="hidden space-y-6">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-4 border-b border-orange-100">
+        <div>
+          <h2 class="text-2xl font-black text-slate-900">Authentic Indian Experiences</h2>
+          <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Hands-on artisan workshops, tea & spice estate walks, and tranquil canal trails.</p>
+        </div>
+        <div class="text-xs text-slate-500">
+          Instant UPI confirmation • Scannable e-Pass
+        </div>
+      </div>
+      <div id="tours-catalog-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </div>
+
+    <!-- VIEW 3: LOCAL MERCHANTS DIRECTORY -->
+    <div id="view-merchants" class="hidden space-y-6">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-4 border-b border-orange-100">
+        <div>
+          <h2 class="text-2xl font-black text-slate-900">Verified Indian Artisans & MSMEs</h2>
+          <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Meet national awardee weavers, organic spice planters, and rural cooperatives.</p>
+        </div>
+        <button onclick="window.BusinessPortal.openRegisterBusinessModal()" class="px-3.5 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 text-white rounded-xl text-xs font-bold shadow transition">
+          Register Your MSME / Guild
+        </button>
+      </div>
+      <div id="businesses-catalog-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </div>
+
+    <!-- VIEW 4: SMART ITINERARY / DAY TRAIL PLANNER -->
+    <div id="view-itinerary" class="hidden space-y-6">
+      <div id="itinerary-content-container"></div>
+    </div>
+
+    <!-- VIEW 5: WISHLIST / SAVED TOURS -->
+    <div id="view-wishlist" class="hidden space-y-6">
+      <div id="wishlist-container"></div>
+    </div>
+
+    <!-- VIEW 6: MY BOOKINGS & PASSES -->
+    <div id="view-my-bookings" class="hidden space-y-6">
+      <div id="my-bookings-container"></div>
+    </div>
+
+    <!-- VIEW 7: MERCHANT & BUSINESS DEVELOPMENT HUB -->
+    <div id="view-business-hub" class="hidden space-y-6">
+      <div id="business-portal-container"></div>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-white border-t border-orange-100 mt-16 py-8 px-4 text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <span class="font-black text-slate-900 text-sm">BharatVibe</span>
+        <span>• India's Smart Local Tourism & MSME Development Platform</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span>Ministry of Tourism Partner</span>
+        <span>PM Vishwakarma Allied</span>
+        <span>One District One Product (ODOP)</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- BOOKING & UPI PAYMENT MODAL -->
+  <div id="booking-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-3xl w-full shadow-2xl overflow-hidden my-8" id="booking-modal-content"></div>
+  </div>
+
+  <!-- GENERAL DETAIL / FORM / REVIEW MODAL -->
+  <div id="general-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-2xl w-full shadow-2xl overflow-hidden my-8" id="general-modal-content"></div>
+  </div>
+
+  <!-- TOAST NOTIFICATIONS CONTAINER -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-auto"></div>
+
+  <!-- SCRIPTS BUNDLE -->
+  <script src="js/data.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/booking.js"></script>
+  <script src="js/itinerary.js"></script>
+  <script src="js/business-portal.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
